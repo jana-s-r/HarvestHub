@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8">
+      <link rel="icon" type="image/x-icon" href="img/favicon-32x32.png">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>HarvestHub</title>
+      <!-- Bootstrap CSS -->
+      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+      <!-- Custom CSS -->
+      <link rel="stylesheet" href="css/styles.css">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+      <!-- jQuery -->
+      <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+      <script type="text/javascript" src="js/jquery.store.js"></script>
+      <!-- Bootstrap JS -->
+      <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+   </head>
+   <body id="cart-page">
+      <div id="site" class="container cartcontent">
+         <div class="table-wrapper" id="content">
+            <div class="table-title">
+               <div class="row">
+                  <div class="col-sm-12">
+                     <h2>Your <b>Shopping</b> Cart</h2>
+                  </div>
+               </div>
+            </div>
+            <form id="shopping-cart" action="cart.html" >
+               <table class="shopping-cart table-striped">
+                  <thead>
+                     <tr>
+                        <th scope="col">Item</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col" colspan="2">Price</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     <!-- Placeholder for shopping cart items -->
+                  </tbody>
+               </table>
+               <p id="sub-total">
+                  <strong>Sub Total</strong>: <span id="stotal"></span>
+               </p>
+               <ul id="shopping-cart-actions" class="list-inline">
+                  <li class="list-inline-item">
+                     <input type="submit" name="update" id="update-cart" class="btn" value="Update Cart" />
+                  </li>
+                  <li class="list-inline-item">
+                     <input type="submit" name="delete" id="empty-cart" class="btn" value="Empty Cart" />
+                  </li>
+                  <li class="list-inline-item">
+                     <a href="index.html#product" class="btn btn">Continue Shopping</a>
+                  </li>
+                  <li class="list-inline-item">
+                     <a href="checkout.html" class="btn">Go To Checkout</a>
+                  </li>
+               </ul>
+            </form>
+         </div>
+      </div>
+      <!-- Footer Section -->
+      <footer class="text-center text-white">
+         <!-- Grid container -->
+         <div class="container pt-4">
+            <!-- Section: Social media -->
+            <section class="mb-4">
+               <!-- Facebook -->
+               <a class="btn btn-link btn-floating btn-lg text-dark m-1" href="https://www.facebook.com/" role="button">
+               <i class="fab fa-facebook-f"></i>
+               </a>
+               <!-- Instagram -->
+               <a class="btn btn-link btn-floating btn-lg text-dark m-1" href="https://www.instagram.com/" role="button">
+               <i class="fab fa-instagram"></i>
+               </a>
+               <!-- Linkedin -->
+               <a class="btn btn-link btn-floating btn-lg text-dark m-1" href="https://www.linkedin.com/in/jana-s-r/" role="button">
+               <i class="fab fa-linkedin"></i>
+               </a>
+               <!-- Github -->
+               <a class="btn btn-link btn-floating btn-lg text-dark m-1" href="https://github.com/jana-s-r" role="button">
+               <i class="fab fa-github"></i>
+               </a>
+            </section>
+            <!-- Section: Social media -->
+         </div>
+         <!-- Grid container -->
+         <!-- Copyright -->
+         <div class="text-light p-3" style="background-color: black;">
+            Copyright © HarvestHub 2024
+         </div>
+         <!-- Copyright -->
+      </footer>
+      <!-- End Of Footer Section -->
+   </body>
+</html>
