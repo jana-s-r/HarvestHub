@@ -13,7 +13,7 @@ HarvestHub is a responsive web application designed to facilitate direct sales o
 - Order Management: Provides functionality for users to view and manage their orders.
 ## Installation
 
-o run HarvestHub locally, follow these steps:
+Run HarvestHub locally, follow these steps:
 
 1. Clone the repository:
 
@@ -25,7 +25,7 @@ o run HarvestHub locally, follow these steps:
     
 ## Demo
 
-https://jana-s-r.github.io/Responsive-Carrom-Board/
+https://jana-s-r.github.io/HarvestHub/
 
 ## 🔗 Links
 
