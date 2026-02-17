@@ -1,597 +1,342 @@
 $.noConflict();
 (function (jQuery) {
-   jQuery.Shop = function (element) {
-      this.jQueryelement = jQuery(element);
-      this.init();
-   };
-
-   jQuery.Shop.prototype = {
-      init: function () {
-
-         // Properties
-
-         this.cartPrefix = "Furniture-"; // Prefix string to be prepended to the cart's name in the session storage
-         this.cartName = this.cartPrefix + "cart"; // Cart name in the session storage
-         this.shippingRates = this.cartPrefix + "shipping-rates"; // Shipping rates key in the session storage
-         this.total = this.cartPrefix + "total"; // Total key in the session storage
-         this.storage = sessionStorage; // shortcut to the sessionStorage object
-
-
-         this.jQueryformAddToCart = this.jQueryelement.find("form.add-to-cart"); // Forms for adding items to the cart
-         this.jQueryformCart = this.jQueryelement.find("#shopping-cart"); // Shopping cart form
-         this.jQuerycheckoutCart = this.jQueryelement.find("#checkout-cart"); // Checkout form cart
-         this.jQuerycheckoutOrderForm = this.jQueryelement.find("#checkout-order-form"); // Checkout user details form
-         this.jQueryshipping = this.jQueryelement.find("#sshipping"); // Element that displays the shipping rates
-         this.jQuerysubTotal = this.jQueryelement.find("#stotal"); // Element that displays the subtotal charges
-         this.jQueryshoppingCartActions = this.jQueryelement.find("#shopping-cart-actions"); // Cart actions links
-         this.jQueryupdateCartBtn = this.jQueryshoppingCartActions.find("#update-cart"); // Update cart button
-         this.jQueryemptyCartBtn = this.jQueryshoppingCartActions.find("#empty-cart"); // Empty cart button
-         this.jQueryuserDetails = this.jQueryelement.find("#user-details-content"); // Element that displays the user information
-
-
-         this.currency = "₹"; // HTML entity of the currency to be displayed in the layout
-         this.currencyString = "₹"; // Currency symbol as textual string
-
-         // Object containing patterns for form validation
-         this.requiredFields = {
-            expression: {
-               value: /^([\w-\.]+)@((?:[\w]+\.)+)([a-z]){2,4}jQuery/
-            },
-
-            str: {
-               value: ""
-            }
-
-         };
-
-         // Method invocation
-
-         this.createCart();
-         this.handleAddToCartForm();
-         this.handleCheckoutOrderForm();
-         this.emptyCart();
-         this.updateCart();
-         this.displayCart();
-         this.deleteProduct();
-         this.displayUserDetails();
-
-
-      },
-
-      // Public methods
-
-      // Creates the cart keys in the session storage
-
-      createCart: function () {
-         if (this.storage.getItem(this.cartName) == null) {
-
-            var cart = {};
-            cart.items = [];
-
-            this.storage.setItem(this.cartName, this._toJSONString(cart));
-            this.storage.setItem(this.shippingRates, "0");
-            this.storage.setItem(this.total, "0");
-         }
-      },
-
-
-      // Displays the user's information
-
-      displayUserDetails: function () {
-         if (this.jQueryuserDetails.length) {
-            if (this.storage.getItem("shipping-name") == null) {
-               var firstname = this.storage.getItem("billing-firstname");
-               var lastname = this.storage.getItem("billing-lastname");
-               var email = this.storage.getItem("billing-email");
-               var address = this.storage.getItem("billing-address");
-               var zip = this.storage.getItem("billing-zip");
-               var country = this.storage.getItem("billing-country");
-
-               var html = "<div class='detail'>";
-               html += "<ul>";
-               html += "<li><strong>First name:</strong> " + firstname + "</li>";
-               html += "<li><strong>Last name:</strong> " + lastname + "</li>";
-               html += "<li><strong>Email:</strong> " + email + "</li>";
-               html += "<li><strong>Address:</strong> " + address + "</li>";
-               html += "<li><strong>ZIP Code:</strong> " + zip + "</li>";
-               html += "<li><strong>Country:</strong> " + country + "</li>";
-               html += "</ul></div>";
-
-               this.jQueryuserDetails[0].innerHTML = html;
-            } else {
-               var firstname = this.storage.getItem("billing-firstname");
-               var lastname = this.storage.getItem("billing-lastname");
-               var email = this.storage.getItem("billing-email");
-               var address = this.storage.getItem("billing-address");
-               var zip = this.storage.getItem("billing-zip");
-               var country = this.storage.getItem("billing-country");
-
-               var sFirstname = this.storage.getItem("shipping-firstname");
-               var sLastname = this.storage.getItem("shipping-lastname");
-               var sEmail = this.storage.getItem("shipping-email");
-               var sAddress = this.storage.getItem("shipping-address");
-               var sZip = this.storage.getItem("shipping-zip");
-               var sCountry = this.storage.getItem("shipping-country");
-
-               var html = "<div class='detail'>";
-               html += "<h2>Billing Address</h2>";
-               html += "<ul>";
-               html += "<li>" + firstname + "</li>";
-               html += "<li>" + lastname + "</li>";
-               html += "<li>" + email + "</li>";
-               html += "<li>" + address + "</li>";
-               html += "<li>" + zip + "</li>";
-               html += "<li>" + country + "</li>";
-               html += "</ul></div>";
-
-               html += "<div class='detail right'>";
-               html += "<h2>Shipping Address</h2>";
-               html += "<ul>";
-               html += "<li>" + sFirstname + "</li>";
-               html += "<li>" + sLastname + "</li>";
-               html += "<li>" + sEmail + "</li>";
-               html += "<li>" + sAddress + "</li>";
-               html += "<li>" + sZip + "</li>";
-               html += "<li>" + sCountry + "</li>";
-               html += "</ul></div>";
-
-               this.jQueryuserDetails[0].innerHTML = html;
-
-            }
-         }
-      },
-
-      // Delete a product from the shopping cart
-
-      deleteProduct: function () {
-         var self = this;
-         if (self.jQueryformCart.length) {
-            var cart = this._toJSONObject(this.storage.getItem(this.cartName));
-            var items = cart.items;
-
-            jQuery(document).on("click", ".pdelete a", function (e) {
-               e.preventDefault();
-               var productName = jQuery(this).data("product");
-               var newItems = [];
-               for (var i = 0; i < items.length; ++i) {
-                  var item = items[i];
-                  var product = item.product;
-                  if (product == productName) {
-                     items.splice(i, 1);
-                  }
-               }
-               newItems = items;
-               var updatedCart = {};
-               updatedCart.items = newItems;
-
-               var updatedTotal = 0;
-               var totalQty = 0;
-               if (newItems.length == 0) {
-                  updatedTotal = 0;
-                  totalQty = 0;
-               } else {
-                  for (var j = 0; j < newItems.length; ++j) {
-                     var prod = newItems[j];
-                     var sub = prod.price * prod.qty;
-                     updatedTotal += sub;
-                     totalQty += prod.qty;
-                  }
-               }
-
-               self.storage.setItem(self.total, self._convertNumber(updatedTotal));
-               self.storage.setItem(self.shippingRates, self._convertNumber(self._calculateShipping(totalQty)));
-
-               self.storage.setItem(self.cartName, self._toJSONString(updatedCart));
-               jQuery(this).parents("tr").remove();
-               self.jQuerysubTotal[0].innerHTML = self.currency + " " + self.storage.getItem(self.total);
-            });
-         }
-      },
-
-      // Displays the shopping cart
-
-      displayCart: function () {
-         if (this.jQueryformCart.length) {
-            var cart = this._toJSONObject(this.storage.getItem(this.cartName));
-            var items = cart.items;
-            var jQuerytableCart = this.jQueryformCart.find(".shopping-cart");
-            var jQuerytableCartBody = jQuerytableCart.find("tbody");
-
-            if (items.length == 0) {
-               jQuerytableCartBody.html("");
-            } else {
-
-
-               for (var i = 0; i < items.length; ++i) {
-                  var item = items[i];
-                  var product = item.product;
-                  var price = this.currency + " " + item.price;
-                  var qty = item.qty;
-                  var html = "<tr><td class='pname'>" + product + "</td>" + "<td class='pqty'><input type='text' id='resqty' value='" + qty + "' class='qty'/> Kg</td>";
-                  html += "<td class='pprice'>" + price + ".00</td><td class='pdelete'><a href='' data-product='" + product + "'>×</a></td></tr>";
-
-                  jQuerytableCartBody.html(jQuerytableCartBody.html() + html);
-               }
-
-            }
-
-            if (items.length == 0) {
-               this.jQuerysubTotal[0].innerHTML = this.currency + " " + 0.00;
-            } else {
-
-               var total = this.storage.getItem(this.total);
-               this.jQuerysubTotal[0].innerHTML = this.currency + " " + total;
-            }
-         } else if (this.jQuerycheckoutCart.length) {
-            var checkoutCart = this._toJSONObject(this.storage.getItem(this.cartName));
-            var cartItems = checkoutCart.items;
-            var jQuerycartBody = this.jQuerycheckoutCart.find("tbody");
-
-            if (cartItems.length > 0) {
-
-               for (var j = 0; j < cartItems.length; ++j) {
-                  var cartItem = cartItems[j];
-                  var cartProduct = cartItem.product;
-                  var cartPrice = this.currency + " " + cartItem.price;
-                  var cartQty = cartItem.qty;
-                  var cartHTML = "<tr><td class='pname'>" + cartProduct + "</td>" + "<td class='pqty'>" + cartQty + "</td>" + "<td class='pprice'>" + cartPrice + ".00</td></tr>";
-
-                  jQuerycartBody.html(jQuerycartBody.html() + cartHTML);
-               }
-            } else {
-               jQuerycartBody.html("");
-            }
-
-            if (cartItems.length > 0) {
-
-               var cartTotal = this.storage.getItem(this.total);
-               var cartShipping = this.storage.getItem(this.shippingRates);
-               var subTot = this._convertString(cartTotal) + this._convertString(cartShipping);
-
-               this.jQuerysubTotal[0].innerHTML = this.currency + " " + this._convertNumber(subTot);
-               this.jQueryshipping[0].innerHTML = this.currency + " " + cartShipping;
-            } else {
-               this.jQuerysubTotal[0].innerHTML = this.currency + " " + 0.00;
-               this.jQueryshipping[0].innerHTML = this.currency + " " + 0.00;
-            }
-
-         }
-      },
-
-      // Empties the cart by calling the _emptyCart() method
-      // @see jQuery.Shop._emptyCart()
-
-      emptyCart: function () {
-         var self = this;
-         if (self.jQueryemptyCartBtn.length) {
-            self.jQueryemptyCartBtn.on("click", function () {
-               self._emptyCart();
-            });
-         }
-      },
-
-      // Updates the cart
-
-      updateCart: function () {
-         var self = this;
-         if (self.jQueryupdateCartBtn.length) {
-            self.jQueryupdateCartBtn.on("click", function () {
-               var jQueryrows = self.jQueryformCart.find("tbody tr");
-               var cart = self.storage.getItem(self.cartName);
-               var shippingRates = self.storage.getItem(self.shippingRates);
-               var total = self.storage.getItem(self.total);
-
-               var updatedTotal = 0;
-               var totalQty = 0;
-               var updatedCart = {};
-               updatedCart.items = [];
-
-               jQueryrows.each(function () {
-                  var jQueryrow = jQuery(this);
-                  var pname = jQuery.trim(jQueryrow.find(".pname").text());
-                  var pqty = self._convertString(jQueryrow.find(".pqty > .qty").val());
-                  var pprice = self._convertString(self._extractPrice(jQueryrow.find(".pprice")));
-
-                  var cartObj = {
-                     product: pname,
-                     price: pprice,
-                     qty: pqty
-                  };
-
-                  updatedCart.items.push(cartObj);
-
-                  var subTotal = pqty * pprice;
-                  updatedTotal += subTotal;
-                  totalQty += pqty;
-               });
-
-               self.storage.setItem(self.total, self._convertNumber(updatedTotal));
-               self.storage.setItem(self.shippingRates, self._convertNumber(self._calculateShipping(totalQty)));
-               self.storage.setItem(self.cartName, self._toJSONString(updatedCart));
-
-            });
-         }
-      },
-
-      // Adds items to the shopping cart
-
-      handleAddToCartForm: function () {
-         var self = this;
-         self.jQueryformAddToCart.each(function () {
-            var jQueryform = jQuery(this);
-            var jQueryproduct = jQueryform.parent();
-            var price = self._convertString(jQueryproduct.data("price"));
-            var name = jQueryproduct.data("name");
-
-            jQueryform.on("submit", function () {
-               var qty = self._convertString(jQueryform.find(".qty").val());
-               var subTotal = qty * price;
-               var total = self._convertString(self.storage.getItem(self.total));
-               var sTotal = total + subTotal;
-               self.storage.setItem(self.total, sTotal);
-               self._addToCart({
-                  product: name,
-                  price: price,
-                  qty: qty
-               });
-               var shipping = self._convertString(self.storage.getItem(self.shippingRates));
-               var shippingRates = self._calculateShipping(qty);
-               var totalShipping = shipping + shippingRates;
-
-               self.storage.setItem(self.shippingRates, totalShipping);
-            });
-         });
-      },
-
-      // Handles the checkout form by adding a validation routine and saving user's info into the session storage
-
-      handleCheckoutOrderForm: function () {
-         var self = this;
-         if (self.jQuerycheckoutOrderForm.length) {
-            var jQuerysameAsBilling = jQuery("#same-as-billing");
-            jQuerysameAsBilling.on("change", function () {
-               var jQuerycheck = jQuery(this);
-               if (jQuerycheck.prop("checked")) {
-                  jQuery("#fieldset-shipping").slideUp("normal");
-               } else {
-                  jQuery("#fieldset-shipping").slideDown("normal");
-               }
-            });
-
-            self.jQuerycheckoutOrderForm.on("submit", function () {
-               var jQueryform = jQuery(this);
-               var valid = self._validateForm(jQueryform);
-
-               if (!valid) {
-                  return valid;
-               } else {
-                  self._saveFormData(jQueryform);
-               }
-            });
-         }
-      },
-
-      // Private methods
-
-
-      // Empties the session storage
-
-      _emptyCart: function () {
-         this.storage.clear();
-      },
-
-      /* Format a number by decimal places
-       * @param num Number the number to be formatted
-       * @param places Number the decimal places
-       * @returns n Number the formatted number
-       */
-
-
-      _formatNumber: function (num, places) {
-         var n = num.toFixed(places);
-         return n;
-      },
-
-      /* Extract the numeric portion from a string
-       * @param element Object the jQuery element that contains the relevant string
-       * @returns price String the numeric string
-       */
-
-
-      _extractPrice: function (element) {
-         var self = this;
-         var text = element.text();
-         var price = text.replace(self.currencyString, "").replace(" ", "");
-         return price;
-      },
-
-      /* Converts a numeric string into a number
-       * @param numStr String the numeric string to be converted
-       * @returns num Number the number
-       */
-
-      _convertString: function (numStr) {
-         var num;
-         if (/^[-+]?[0-9]+\.[0-9]+jQuery/.test(numStr)) {
-            num = parseFloat(numStr);
-         } else if (/^\d+jQuery/.test(numStr)) {
-            num = parseInt(numStr, 10);
-         } else {
-            num = Number(numStr);
-         }
-
-         if (!isNaN(num)) {
-            return num;
-         } else {
-            console.warn(numStr + " cannot be converted into a number");
-            return false;
-         }
-      },
-
-      /* Converts a number to a string
-       * @param n Number the number to be converted
-       * @returns str String the string returned
-       */
-
-      _convertNumber: function (n) {
-         var str = n.toString();
-         return str;
-      },
-
-      /* Converts a JSON string to a JavaScript object
-       * @param str String the JSON string
-       * @returns obj Object the JavaScript object
-       */
-
-      _toJSONObject: function (str) {
-         var obj = JSON.parse(str);
-         return obj;
-      },
-
-      /* Converts a JavaScript object to a JSON string
-       * @param obj Object the JavaScript object
-       * @returns str String the JSON string
-       */
-
-
-      _toJSONString: function (obj) {
-         var str = JSON.stringify(obj);
-         return str;
-      },
-
-
-      /* Add an object to the cart as a JSON string
-       * @param values Object the object to be added to the cart
-       * @returns void
-       */
-
-
-      _addToCart: function (values) {
-         var cart = this.storage.getItem(this.cartName);
-
-         var cartObject = this._toJSONObject(cart);
-         var cartCopy = cartObject;
-         var items = cartCopy.items;
-         items.push(values);
-
-         this.storage.setItem(this.cartName, this._toJSONString(cartCopy));
-      },
-
-      /* Custom shipping rates calculation based on the total quantity of items in the cart
-       * @param qty Number the total quantity of items
-       * @returns shipping Number the shipping rates
-       */
-
-      _calculateShipping: function (qty) {
-         var shipping = 0;
-         if (qty > 60) {
-            shipping = 0; // Free shipping if quantity is more than 60
-         } else if (qty >= 30 && qty <= 60) {
-            shipping = 30; // Shipping is 30 if quantity is between 30 and 60 (inclusive)
-         } else if (qty >= 12 && qty < 30) {
-            shipping = 20; // Shipping is 20 if quantity is between 12 and 29 (inclusive)
-         } else if (qty >= 4 && qty < 12) {
-            shipping = 10; // Shipping is 10 if quantity is between 4 and 11 (inclusive)
-         } else {
-            // Handle any other case (qty less than 4)
-            shipping = 100; // Default shipping cost when qty is less than 4
-         }
-         return shipping;
-
-      },
-
-      /* Validates the checkout form
-       * @param form Object the jQuery element of the checkout form
-       * @returns valid Boolean true for success, false for failure
-       */
-
-
-      _validateForm: function (form) {
-         var self = this;
-         var fields = self.requiredFields;
-         var jQueryvisibleSet = form.find("fieldset:visible");
-         var valid = true;
-
-         form.find(".message").remove();
-
-         jQueryvisibleSet.each(function () {
-
-            jQuery(this).find(":input").each(function () {
-               var jQueryinput = jQuery(this);
-               var type = jQueryinput.data("type");
-               var msg = jQueryinput.data("message");
-
-               if (type == "string") {
-                  if (jQueryinput.val() == fields.str.value) {
-                     jQuery("<span class='message'/>").text(msg).
-                     insertBefore(jQueryinput);
-
-                     valid = false;
-                  }
-               } else {
-                  if (!fields.expression.value.test(jQueryinput.val())) {
-                     jQuery("<span class='message'/>").text(msg).
-                     insertBefore(jQueryinput);
-
-                     valid = false;
-                  }
-               }
-
-            });
-         });
-
-         return valid;
-
-      },
-
-      /* Save the data entered by the user in the ckeckout form
-       * @param form Object the jQuery element of the checkout form
-       * @returns void
-       */
-
-
-      _saveFormData: function (form) {
-         var self = this;
-         var jQueryvisibleSet = form.find("fieldset:visible");
-
-         jQueryvisibleSet.each(function () {
-            var jQueryset = jQuery(this);
-            if (jQueryset.is("#fieldset-billing")) {
-               var firstname = jQuery("#firstname", jQueryset).val();
-               var lastname = jQuery("#lastname", jQueryset).val();
-               var email = jQuery("#email", jQueryset).val();
-               var address = jQuery("#address", jQueryset).val();
-               var zip = jQuery("#zip", jQueryset).val();
-               var country = jQuery("#country", jQueryset).val();
-
-               self.storage.setItem("billing-firstname", firstname);
-               self.storage.setItem("billing-lastname", lastname);
-               self.storage.setItem("billing-email", email);
-               self.storage.setItem("billing-address", address);
-               self.storage.setItem("billing-zip", zip);
-               self.storage.setItem("billing-country", country);
-            } else {
-               var sFirstname = jQuery("#sfirstname", jQueryset).val();
-               var sLastname = jQuery("#slastname", jQueryset).val();
-               var sEmail = jQuery("#semail", jQueryset).val();
-               var sAddress = jQuery("#saddress", jQueryset).val();
-               var sZip = jQuery("#szip", jQueryset).val();
-               var sCountry = jQuery("#scountry", jQueryset).val();
-
-               self.storage.setItem("shipping-firstname", sFirstname);
-               self.storage.setItem("shipping-lastname", sLastname);
-               self.storage.setItem("shipping-email", sEmail);
-               self.storage.setItem("shipping-address", sAddress);
-               self.storage.setItem("shipping-zip", sZip);
-               self.storage.setItem("shipping-country", sCountry);
-
-            }
-         });
+  jQuery.Shop = function (element) {
+    this.jQueryelement = jQuery(element);
+    this.init();
+  };
+
+  jQuery.Shop.prototype = {
+    init: function () {
+      this.cartPrefix = "Furniture-";
+      this.cartName = this.cartPrefix + "cart";
+      this.shippingRates = this.cartPrefix + "shipping-rates";
+      this.total = this.cartPrefix + "total";
+      this.storage = sessionStorage;
+
+      this.jQueryformAddToCart = this.jQueryelement.find("form.add-to-cart");
+      this.jQueryformCart = this.jQueryelement.find("#shopping-cart");
+      this.jQuerycheckoutCart = this.jQueryelement.find("#checkout-cart");
+      this.jQuerycheckoutOrderForm = this.jQueryelement.find("#checkout-order-form");
+      this.jQueryshipping = this.jQueryelement.find("#sshipping");
+      this.jQuerysubTotal = this.jQueryelement.find("#stotal");
+      this.jQueryshoppingCartActions = this.jQueryelement.find("#shopping-cart-actions");
+      this.jQueryupdateCartBtn = this.jQueryshoppingCartActions.find("#update-cart");
+      this.jQueryemptyCartBtn = this.jQueryshoppingCartActions.find("#empty-cart");
+      this.jQueryuserDetails = this.jQueryelement.find("#user-details-content");
+
+      this.currency = "₹";
+      this.currencyString = "₹";
+
+      this.requiredFields = {
+        expression: {
+          value: /^([\w-\.]+)@((?:[\w]+\.)+)([a-z]){2,4}$/
+        },
+        str: {
+          value: ""
+        }
+      };
+
+      this.createCart();
+      this.handleAddToCartForm();
+      this.handleCheckoutOrderForm();
+      this.emptyCart();
+      this.updateCart();
+      this.displayCart();
+      this.deleteProduct();
+      this.displayUserDetails();
+    },
+
+    createCart: function () {
+      if (this.storage.getItem(this.cartName) == null) {
+        var cart = {};
+        cart.items = [];
+        this.storage.setItem(this.cartName, this._toJSONString(cart));
+        this.storage.setItem(this.shippingRates, "0");
+        this.storage.setItem(this.total, "0");
       }
-   };
+    },
 
-   jQuery(function () {
-      var shop = new jQuery.Shop("#site");
-   });
+    displayUserDetails: function () {
+      if (this.jQueryuserDetails.length) {
+        if (this.storage.getItem("shipping-name") == null) {
+          var firstname = this.storage.getItem("billing-firstname");
+          var lastname = this.storage.getItem("billing-lastname");
+          var email = this.storage.getItem("billing-email");
+          var address = this.storage.getItem("billing-address");
+          var zip = this.storage.getItem("billing-zip");
+          var country = this.storage.getItem("billing-country");
 
+          var html = "<div class='detail'><ul>";
+          html += "<li><strong>First name:</strong> " + firstname + "</li>";
+          html += "<li><strong>Last name:</strong> " + lastname + "</li>";
+          html += "<li><strong>Email:</strong> " + email + "</li>";
+          html += "<li><strong>Address:</strong> " + address + "</li>";
+          html += "<li><strong>ZIP Code:</strong> " + zip + "</li>";
+          html += "<li><strong>Country:</strong> " + country + "</li>";
+          html += "</ul></div>";
+
+          this.jQueryuserDetails[0].innerHTML = html;
+        } else {
+          var firstname = this.storage.getItem("billing-firstname");
+          var lastname = this.storage.getItem("billing-lastname");
+          var email = this.storage.getItem("billing-email");
+          var address = this.storage.getItem("billing-address");
+          var zip = this.storage.getItem("billing-zip");
+          var country = this.storage.getItem("billing-country");
+
+          var sFirstname = this.storage.getItem("shipping-firstname");
+          var sLastname = this.storage.getItem("shipping-lastname");
+          var sEmail = this.storage.getItem("shipping-email");
+          var sAddress = this.storage.getItem("shipping-address");
+          var sZip = this.storage.getItem("shipping-zip");
+          var sCountry = this.storage.getItem("shipping-country");
+
+          var html = "<div class='detail'><h2>Billing Address</h2><ul>";
+          html += "<li>" + firstname + "</li>";
+          html += "<li>" + lastname + "</li>";
+          html += "<li>" + email + "</li>";
+          html += "<li>" + address + "</li>";
+          html += "<li>" + zip + "</li>";
+          html += "<li>" + country + "</li>";
+          html += "</ul></div>";
+
+          html += "<div class='detail right'><h2>Shipping Address</h2><ul>";
+          html += "<li>" + sFirstname + "</li>";
+          html += "<li>" + sLastname + "</li>";
+          html += "<li>" + sEmail + "</li>";
+          html += "<li>" + sAddress + "</li>";
+          html += "<li>" + sZip + "</li>";
+          html += "<li>" + sCountry + "</li>";
+          html += "</ul></div>";
+
+          this.jQueryuserDetails[0].innerHTML = html;
+        }
+      }
+    },
+
+    deleteProduct: function () {
+      var self = this;
+      if (self.jQueryformCart.length) {
+        var cart = this._toJSONObject(this.storage.getItem(this.cartName));
+        var items = cart.items;
+
+        jQuery(document).on("click", ".pdelete a", function (e) {
+          e.preventDefault();
+          var productName = jQuery(this).data("product");
+
+          for (var i = 0; i < items.length; ++i) {
+            if (items[i].product == productName) {
+              items.splice(i, 1);
+            }
+          }
+
+          var updatedTotal = 0;
+          var totalQty = 0;
+
+          for (var j = 0; j < items.length; ++j) {
+            var prod = items[j];
+            updatedTotal += prod.price * prod.qty;
+            totalQty += prod.qty;
+          }
+
+          self.storage.setItem(self.total, self._convertNumber(updatedTotal));
+          self.storage.setItem(self.shippingRates, self._convertNumber(self._calculateShipping(totalQty)));
+          self.storage.setItem(self.cartName, self._toJSONString({ items: items }));
+
+          jQuery(this).parents("tr").remove();
+          self.jQuerysubTotal[0].innerHTML = self.currency + " " + self.storage.getItem(self.total);
+        });
+      }
+    },
+
+    displayCart: function () {
+      if (this.jQueryformCart.length) {
+        var cart = this._toJSONObject(this.storage.getItem(this.cartName));
+        var items = cart.items;
+        var table = this.jQueryformCart.find(".shopping-cart tbody");
+
+        table.html("");
+
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          var html = "<tr><td class='pname'>" + item.product + "</td>";
+          html += "<td class='pqty'><input type='text' value='" + item.qty + "' class='qty'/> Kg</td>";
+          html += "<td class='pprice'>" + this.currency + " " + item.price + ".00</td>";
+          html += "<td class='pdelete'><a href='' data-product='" + item.product + "'>×</a></td></tr>";
+          table.append(html);
+        }
+
+        this.jQuerysubTotal[0].innerHTML = this.currency + " " + this.storage.getItem(this.total);
+      }
+    },
+
+    emptyCart: function () {
+      var self = this;
+      if (self.jQueryemptyCartBtn.length) {
+        self.jQueryemptyCartBtn.on("click", function () {
+          self._emptyCart();
+        });
+      }
+    },
+
+    updateCart: function () {
+      var self = this;
+      if (self.jQueryupdateCartBtn.length) {
+        self.jQueryupdateCartBtn.on("click", function () {
+          var rows = self.jQueryformCart.find("tbody tr");
+          var updatedCart = { items: [] };
+          var updatedTotal = 0;
+          var totalQty = 0;
+
+          rows.each(function () {
+            var row = jQuery(this);
+            var pname = jQuery.trim(row.find(".pname").text());
+            var pqty = self._convertString(row.find(".qty").val());
+            var pprice = self._convertString(self._extractPrice(row.find(".pprice")));
+
+            updatedCart.items.push({ product: pname, price: pprice, qty: pqty });
+
+            updatedTotal += pqty * pprice;
+            totalQty += pqty;
+          });
+
+          self.storage.setItem(self.total, self._convertNumber(updatedTotal));
+          self.storage.setItem(self.shippingRates, self._convertNumber(self._calculateShipping(totalQty)));
+          self.storage.setItem(self.cartName, self._toJSONString(updatedCart));
+        });
+      }
+    },
+
+    handleAddToCartForm: function () {
+      var self = this;
+      self.jQueryformAddToCart.each(function () {
+        var form = jQuery(this);
+        var product = form.parent();
+        var price = self._convertString(product.data("price"));
+        var name = product.data("name");
+
+        form.on("submit", function () {
+          var qty = self._convertString(form.find(".qty").val());
+          var subTotal = qty * price;
+          var total = self._convertString(self.storage.getItem(self.total));
+          self.storage.setItem(self.total, total + subTotal);
+
+          self._addToCart({ product: name, price: price, qty: qty });
+
+          var shipping = self._convertString(self.storage.getItem(self.shippingRates));
+          self.storage.setItem(self.shippingRates, shipping + self._calculateShipping(qty));
+        });
+      });
+    },
+
+    handleCheckoutOrderForm: function () {
+      var self = this;
+      if (self.jQuerycheckoutOrderForm.length) {
+        jQuery("#same-as-billing").on("change", function () {
+          if (jQuery(this).prop("checked")) {
+            jQuery("#fieldset-shipping").slideUp();
+          } else {
+            jQuery("#fieldset-shipping").slideDown();
+          }
+        });
+
+        self.jQuerycheckoutOrderForm.on("submit", function () {
+          if (!self._validateForm(jQuery(this))) return false;
+          self._saveFormData(jQuery(this));
+        });
+      }
+    },
+
+    _emptyCart: function () {
+      this.storage.clear();
+    },
+
+    _extractPrice: function (element) {
+      return element.text().replace(this.currencyString, "").replace(" ", "");
+    },
+
+    _convertString: function (numStr) {
+      var num = Number(numStr);
+      return isNaN(num) ? 0 : num;
+    },
+
+    _convertNumber: function (n) {
+      return n.toString();
+    },
+
+    _toJSONObject: function (str) {
+      return JSON.parse(str);
+    },
+
+    _toJSONString: function (obj) {
+      return JSON.stringify(obj);
+    },
+
+    _addToCart: function (values) {
+      var cart = this._toJSONObject(this.storage.getItem(this.cartName));
+      cart.items.push(values);
+      this.storage.setItem(this.cartName, this._toJSONString(cart));
+    },
+
+    _calculateShipping: function (qty) {
+      if (qty > 60) return 0;
+      if (qty >= 30) return 30;
+      if (qty >= 12) return 20;
+      if (qty >= 4) return 10;
+      return 100;
+    },
+
+    _validateForm: function (form) {
+      var self = this;
+      var valid = true;
+      form.find(".message").remove();
+
+      form.find("fieldset:visible :input").each(function () {
+        var input = jQuery(this);
+        var type = input.data("type");
+        var msg = input.data("message");
+
+        if (type == "string") {
+          if (!input.val()) {
+            jQuery("<span class='message'/>").text(msg).insertBefore(input);
+            valid = false;
+          }
+        } else {
+          if (!self.requiredFields.expression.value.test(input.val())) {
+            jQuery("<span class='message'/>").text(msg).insertBefore(input);
+            valid = false;
+          }
+        }
+      });
+
+      return valid;
+    },
+
+    _saveFormData: function (form) {
+      var self = this;
+      form.find("fieldset:visible").each(function () {
+        var set = jQuery(this);
+
+        if (set.is("#fieldset-billing")) {
+          self.storage.setItem("billing-firstname", jQuery("#firstname", set).val());
+          self.storage.setItem("billing-lastname", jQuery("#lastname", set).val());
+          self.storage.setItem("billing-email", jQuery("#email", set).val());
+          self.storage.setItem("billing-address", jQuery("#address", set).val());
+          self.storage.setItem("billing-zip", jQuery("#zip", set).val());
+          self.storage.setItem("billing-country", jQuery("#country", set).val());
+        } else {
+          self.storage.setItem("shipping-firstname", jQuery("#sfirstname", set).val());
+          self.storage.setItem("shipping-lastname", jQuery("#slastname", set).val());
+          self.storage.setItem("shipping-email", jQuery("#semail", set).val());
+          self.storage.setItem("shipping-address", jQuery("#saddress", set).val());
+          self.storage.setItem("shipping-zip", jQuery("#szip", set).val());
+          self.storage.setItem("shipping-country", jQuery("#scountry", set).val());
+        }
+      });
+    }
+  };
+
+  jQuery(function () {
+    new jQuery.Shop("#site");
+  });
 })(jQuery);
