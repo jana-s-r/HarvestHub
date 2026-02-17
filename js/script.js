@@ -1,6 +1,5 @@
 window.addEventListener('DOMContentLoaded', event => {
 
-    // Navbar shrink function
     var navbarShrink = function () {
        const navbarCollapsible = document.body.querySelector('#mainNav');
        if (!navbarCollapsible) {
@@ -11,17 +10,11 @@ window.addEventListener('DOMContentLoaded', event => {
        } else {
           navbarCollapsible.classList.add('navbar-shrink')
        }
- 
     };
- 
- 
-    // Shrink the navbar 
+
     navbarShrink();
- 
-    // Shrink the navbar when page is scrolled
     document.addEventListener('scroll', navbarShrink);
- 
-    //  Activate Bootstrap scrollspy on the main nav element
+
     const mainNav = document.body.querySelector('#mainNav');
     if (mainNav) {
        new bootstrap.ScrollSpy(document.body, {
@@ -29,9 +22,7 @@ window.addEventListener('DOMContentLoaded', event => {
           rootMargin: '0px 0px -40%',
        });
     };
- 
- 
-    // Collapse responsive navbar when toggler is visible
+
     const navbarToggler = document.body.querySelector('.navbar-toggler');
     const responsiveNavItems = [].slice.call(
        document.querySelectorAll('#navbarResponsive .nav-link')
@@ -43,16 +34,13 @@ window.addEventListener('DOMContentLoaded', event => {
           }
        });
     });
- 
- });
- 
- 
- // Sweet Alert
- 
- document.addEventListener('DOMContentLoaded', function () {
+
+});
+
+document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('my-form').addEventListener('submit', function (event) {
        event.preventDefault();
- 
+
        Swal.fire({
           icon: 'success',
           title: 'Message Sent!',
@@ -65,17 +53,14 @@ window.addEventListener('DOMContentLoaded', event => {
           document.getElementById('my-form').reset();
        });
     });
- });
- 
- 
- function validateQuantity(input) {
-    // Remove non-numeric characters except for the last one if it's a dot or slash
+});
+
+function validateQuantity(input) {
     input.value = input.value.replace(/[^\d.\/]/g, '');
- 
-    // Check if the input is valid according to the pattern
+
     if (!/^(?!0)[1-9][0-9]{0,1}$|100$/.test(input.value)) {
        input.setCustomValidity('Invalid quantity. Please enter a number between 1 and 100.');
     } else {
        input.setCustomValidity('');
     }
- }
+}
